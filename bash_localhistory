@@ -1,0 +1,32 @@
+# Command to actually write the local history. To prevent annoying error
+# messages, this first checks, if the current directory is writable.  Some
+# boring no-op commands are filtered.
+myLocalHistory() {
+  if test -w .
+  then
+    history 1 | awk '($2 !~ "^(ls|ll|l|dir|less|head|tail|cd|man|gh|h|bg|fg|qsm|quser|qstat)$") {$1="_T="strftime("%Y-%m-%d_%H:%M:%S_") PROCINFO["ppid"] "\t"; print;}' >>.history-${USER}
+  else
+    history 1 | awk '($2 !~ "^(ls|ll|l|dir|less|head|tail|cd|man|gh|h|bg|fg|qsm|quser|qstat)$") {$1="_T="strftime("%Y-%m-%d_%H:%M:%S_") PROCINFO["ppid"] "_PWD="  ENVIRON["PWD"] "\t"; print;}' >> ~/.history-all-${USER}
+  fi
+}
+
+# Hook localhistory command into PROMPT_COMMAND to execute it, whenever a
+# prompt is shown. To prevent history line duplication, we have to ensure that
+# we only load the history once.
+if [[ $PROMPT_COMMAND != *myLocalHistory* ]]
+then
+    export PROMPT_COMMAND="myLocalHistory ; $PROMPT_COMMAND"
+fi
+
+# Convenience function to get the last 10 commands from the local history.
+function h()
+{
+     tail .history .history-${USER} 2>/dev/null
+}
+
+# Convenience function to grep in the local history.
+function gh()
+{
+     cat .history .history-${USER} | tr -d '\0' | cut -d ' ' -f2- | grep -a "$1"  2>/dev/null
+}
+
